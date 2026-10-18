@@ -1,0 +1,322 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Ventas Diarias</title>
+</head>
+<body>
+
+<table border="1" cellpadding="5" width="700">
+
+    <tr>
+        <td colspan="3">
+            <h1>Control de Ventas Diarias</h1>
+        </td>
+    </tr>
+
+    <tr>
+        <td>
+            <label for="cantidad">Cantidad de días</label>
+        </td>
+        <td>
+            <form id="formDias">
+                <input type="number" id="cantidad"
+                       min="1" step="1" required>
+            </form>
+        </td>
+        <td>
+            <button type="submit" form="formDias">
+                Iniciar
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>
+            <label for="venta" id="etiqueta">
+                Venta del día
+            </label>
+        </td>
+        <td>
+            <form id="formVenta">
+                <input type="number" id="venta"
+                       min="0" step="any" required disabled>
+            </form>
+        </td>
+        <td>
+            <button type="submit" form="formVenta"
+                    id="btnAgregar" disabled>
+                Agregar
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Listado de ventas</td>
+        <td>
+            <textarea id="listado" rows="8"
+                      cols="30" readonly></textarea>
+        </td>
+        <td>
+            <button type="button" onclick="presentar()">
+                Presentar
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Total vendido</td>
+        <td>
+            <input type="text" id="total" readonly>
+        </td>
+        <td rowspan="6">
+            <button type="button" onclick="calcular()">
+                Calcular resultados
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Promedio diario</td>
+        <td><input type="text" id="promedio" readonly></td>
+    </tr>
+
+    <tr>
+        <td>Venta más alta</td>
+        <td><input type="text" id="mayor" readonly></td>
+    </tr>
+
+    <tr>
+        <td>Días con ventas superiores a $100</td>
+        <td><input type="text" id="superiores" readonly></td>
+    </tr>
+
+    <tr>
+        <td>Días con ventas inferiores al promedio</td>
+        <td><input type="text" id="inferiores" readonly></td>
+    </tr>
+
+    <tr>
+        <td>Meta de ventas de $500</td>
+        <td><input type="text" id="meta" readonly></td>
+    </tr>
+
+    <tr>
+        <td colspan="3" align="center">
+            <button type="button" onclick="reiniciar()">
+                Reiniciar
+            </button>
+        </td>
+    </tr>
+
+</table>
+
+<p id="mensaje" role="status"></p>
+
+<script>
+    // Único vector unidimensional
+    let ventas = [];
+    let cantidadDias = 0;
+
+    const mensaje = document.getElementById("mensaje");
+
+    // Iniciar registro
+    document.getElementById("formDias")
+    .addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const campo = document.getElementById("cantidad");
+        const cantidad = Number(campo.value);
+
+        if (campo.value === "" ||
+            !Number.isInteger(cantidad) || cantidad <= 0) {
+            mensaje.textContent =
+                "Ingrese una cantidad válida de días.";
+            return;
+        }
+
+        cantidadDias = cantidad;
+        ventas = [];
+
+        campo.disabled = true;
+        document.getElementById("venta").disabled = false;
+        document.getElementById("btnAgregar").disabled = false;
+        document.getElementById("etiqueta").textContent =
+            "Venta del día 1";
+
+        document.getElementById("listado").value = "";
+        limpiarResultados();
+
+        mensaje.textContent = "Registro iniciado.";
+    });
+
+    // Agregar ventas sin mostrarlas
+    document.getElementById("formVenta")
+    .addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const campo = document.getElementById("venta");
+        const valor = Number(campo.value);
+
+        if (cantidadDias === 0 ||
+            ventas.length >= cantidadDias) {
+            mensaje.textContent =
+                "Primero inicie el registro.";
+            return;
+        }
+
+        if (campo.value.trim() === "" ||
+            !Number.isFinite(valor) || valor < 0) {
+            mensaje.textContent =
+                "Ingrese una venta numérica no negativa.";
+            return;
+        }
+
+        // Guardar en el vector
+        ventas[ventas.length] = valor;
+
+        campo.value = "";
+        limpiarResultados();
+
+        // El listado permanece oculto hasta Presentar
+        document.getElementById("listado").value = "";
+
+        mensaje.textContent =
+            `Venta del día ${ventas.length} guardada.`;
+
+        if (ventas.length === cantidadDias) {
+            campo.disabled = true;
+            document.getElementById("btnAgregar").disabled = true;
+            mensaje.textContent =
+                "Todas las ventas registradas. Presione Presentar.";
+        } else {
+            document.getElementById("etiqueta").textContent =
+                `Venta del día ${ventas.length + 1}`;
+        }
+    });
+
+    // Presentar ventas al pulsar el botón
+    const presentar = () => {
+        if (ventas.length === 0) {
+            mensaje.textContent =
+                "No existen ventas registradas.";
+            return;
+        }
+
+        let texto = "";
+
+        for (let i = 0; i < ventas.length; i++) {
+            texto += `Día ${i + 1}: $${ventas[i].toFixed(2)}\n`;
+        }
+
+        document.getElementById("listado").value = texto;
+        mensaje.textContent = "Ventas presentadas.";
+    };
+
+    // Calcular resultados
+    const calcular = () => {
+        if (ventas.length === 0) {
+            mensaje.textContent =
+                "No hay ventas registradas.";
+            return;
+        }
+
+        if (ventas.length !== cantidadDias) {
+            mensaje.textContent =
+                "Registre primero las ventas de todos los días.";
+            return;
+        }
+
+        let total = 0;
+        let mayor = ventas[0];
+        let diaMayor = 1;
+        let superiores = 0;
+        let inferiores = 0;
+
+        // Primer recorrido
+        for (let i = 0; i < ventas.length; i++) {
+            total = total + ventas[i];
+
+            if (ventas[i] > mayor) {
+                mayor = ventas[i];
+                diaMayor = i + 1;
+            }
+
+            if (ventas[i] > 100) {
+                superiores = superiores + 1;
+            }
+        }
+
+        let promedio = total / ventas.length;
+
+        // Segundo recorrido
+        for (let i = 0; i < ventas.length; i++) {
+            if (ventas[i] < promedio) {
+                inferiores = inferiores + 1;
+            }
+        }
+
+        let estadoMeta = "";
+
+        if (total >= 500) {
+            estadoMeta = "Alcanzada";
+        } else {
+            estadoMeta = "No alcanzada";
+        }
+
+        document.getElementById("total").value =
+            `$${total.toFixed(2)}`;
+
+        document.getElementById("promedio").value =
+            `$${promedio.toFixed(2)}`;
+
+        document.getElementById("mayor").value =
+            `$${mayor.toFixed(2)} - Día ${diaMayor}`;
+
+        document.getElementById("superiores").value =
+            superiores;
+
+        document.getElementById("inferiores").value =
+            inferiores;
+
+        document.getElementById("meta").value =
+            estadoMeta;
+
+        mensaje.textContent = "Cálculos realizados.";
+    };
+
+    // Limpiar resultados
+    const limpiarResultados = () => {
+        document.getElementById("total").value = "";
+        document.getElementById("promedio").value = "";
+        document.getElementById("mayor").value = "";
+        document.getElementById("superiores").value = "";
+        document.getElementById("inferiores").value = "";
+        document.getElementById("meta").value = "";
+    };
+
+    // Reiniciar registro
+    const reiniciar = () => {
+        ventas = [];
+        cantidadDias = 0;
+
+        document.getElementById("formDias").reset();
+        document.getElementById("formVenta").reset();
+
+        document.getElementById("cantidad").disabled = false;
+        document.getElementById("venta").disabled = true;
+        document.getElementById("btnAgregar").disabled = true;
+
+        document.getElementById("etiqueta").textContent =
+            "Venta del día";
+
+        document.getElementById("listado").value = "";
+        limpiarResultados();
+
+        mensaje.textContent = "";
+    };
+</script>
+
+</body>
+</html>

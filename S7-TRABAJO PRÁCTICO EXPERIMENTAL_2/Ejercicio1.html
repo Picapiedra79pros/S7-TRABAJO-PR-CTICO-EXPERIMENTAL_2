@@ -1,0 +1,305 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Calificaciones</title>
+</head>
+<body>
+
+<table border="1" cellpadding="5" width="700">
+
+    <tr>
+        <td colspan="3">
+            <h1>Registro y Análisis de Calificaciones</h1>
+        </td>
+    </tr>
+
+    <tr>
+        <td>
+            <label for="cantidad">
+                Cantidad de evaluaciones
+            </label>
+        </td>
+        <td>
+            <form id="formCantidad">
+                <input type="number" id="cantidad"
+                       min="1" step="1" required>
+            </form>
+        </td>
+        <td>
+            <button type="submit" form="formCantidad">
+                Iniciar
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>
+            <label for="nota" id="etiqueta">
+                Calificación
+            </label>
+        </td>
+        <td>
+            <form id="formNota">
+                <input type="number" id="nota"
+                       min="0" max="10"
+                       step="any" required disabled>
+            </form>
+        </td>
+        <td>
+            <button type="submit" form="formNota"
+                    id="btnAgregar" disabled>
+                Agregar
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Listado de calificaciones</td>
+        <td>
+            <textarea id="listado" rows="8"
+                      cols="30" readonly></textarea>
+        </td>
+        <td>
+            <button type="button" onclick="presentar()">
+                Presentar
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Promedio general</td>
+        <td>
+            <input type="text" id="promedio" readonly>
+        </td>
+        <td rowspan="4">
+            <button type="button" onclick="calcular()">
+                Calcular resultados
+            </button>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Calificación máxima</td>
+        <td>
+            <input type="text" id="maxima" readonly>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Calificación mínima</td>
+        <td>
+            <input type="text" id="minima" readonly>
+        </td>
+    </tr>
+
+    <tr>
+        <td>Calificaciones mayores o iguales a 7</td>
+        <td>
+            <input type="text" id="aprobadas" readonly>
+        </td>
+    </tr>
+
+    <tr>
+        <td colspan="3" align="center">
+            <button type="button" onclick="reiniciar()">
+                Reiniciar
+            </button>
+        </td>
+    </tr>
+
+</table>
+
+<p id="mensaje" role="status"></p>
+
+<script>
+    // Vector unidimensional
+    let calificaciones = [];
+    let cantidad = 0;
+
+    const mensaje = document.getElementById("mensaje");
+
+    // Iniciar registro
+    document.getElementById("formCantidad")
+    .addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const campo = document.getElementById("cantidad");
+        const numero = Number(campo.value);
+
+        if (campo.value === "" ||
+            !Number.isInteger(numero) || numero <= 0) {
+            mensaje.textContent =
+                "Ingrese una cantidad válida de evaluaciones.";
+            return;
+        }
+
+        cantidad = numero;
+        calificaciones = [];
+
+        campo.disabled = true;
+        document.getElementById("nota").disabled = false;
+        document.getElementById("btnAgregar").disabled = false;
+        document.getElementById("etiqueta").textContent =
+            "Calificación 1";
+
+        document.getElementById("listado").value = "";
+        limpiarResultados();
+
+        mensaje.textContent = "Registro iniciado.";
+    });
+
+    // Agregar calificaciones sin mostrarlas
+    document.getElementById("formNota")
+    .addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const campo = document.getElementById("nota");
+        const valor = Number(campo.value);
+
+        if (cantidad === 0 ||
+            calificaciones.length >= cantidad) {
+            mensaje.textContent =
+                "Primero inicie el registro.";
+            return;
+        }
+
+        if (campo.value.trim() === "" ||
+            !Number.isFinite(valor) ||
+            valor < 0 || valor > 10) {
+            mensaje.textContent =
+                "La calificación debe estar entre 0 y 10.";
+            return;
+        }
+
+        // Guardar nota en el vector
+        calificaciones[calificaciones.length] = valor;
+
+        campo.value = "";
+        limpiarResultados();
+
+        // No mostrar hasta presionar Presentar
+        document.getElementById("listado").value = "";
+
+        mensaje.textContent =
+            `Calificación ${calificaciones.length} guardada.`;
+
+        if (calificaciones.length === cantidad) {
+            campo.disabled = true;
+            document.getElementById("btnAgregar").disabled = true;
+
+            mensaje.textContent =
+                "Todas las calificaciones registradas.";
+        } else {
+            document.getElementById("etiqueta").textContent =
+                `Calificación ${calificaciones.length + 1}`;
+        }
+    });
+
+    // Presentar calificaciones
+    const presentar = () => {
+        if (calificaciones.length === 0) {
+            mensaje.textContent =
+                "No hay calificaciones registradas.";
+            return;
+        }
+
+        let texto = "";
+
+        for (let i = 0; i < calificaciones.length; i++) {
+            texto +=
+                `Evaluación ${i + 1}: ${calificaciones[i]}\n`;
+        }
+
+        document.getElementById("listado").value = texto;
+        mensaje.textContent = "Calificaciones presentadas.";
+    };
+
+    // Calcular resultados
+    const calcular = () => {
+        if (calificaciones.length === 0) {
+            mensaje.textContent =
+                "No existen calificaciones registradas.";
+            return;
+        }
+
+        if (calificaciones.length !== cantidad) {
+            mensaje.textContent =
+                "Registre primero todas las calificaciones.";
+            return;
+        }
+
+        let suma = 0;
+        let maxima = calificaciones[0];
+        let minima = calificaciones[0];
+        let aprobadas = 0;
+
+        // Recorrer vector con for
+        for (let i = 0; i < calificaciones.length; i++) {
+            let nota = calificaciones[i];
+
+            suma = suma + nota;
+
+            if (nota > maxima) {
+                maxima = nota;
+            }
+
+            if (nota < minima) {
+                minima = nota;
+            }
+
+            if (nota >= 7) {
+                aprobadas = aprobadas + 1;
+            }
+        }
+
+        let promedio = suma / calificaciones.length;
+
+        document.getElementById("promedio").value =
+            promedio.toFixed(2);
+
+        document.getElementById("maxima").value =
+            maxima;
+
+        document.getElementById("minima").value =
+            minima;
+
+        document.getElementById("aprobadas").value =
+            aprobadas;
+
+        
+    };
+
+    // Limpiar resultados
+    const limpiarResultados = () => {
+        document.getElementById("promedio").value = "";
+        document.getElementById("maxima").value = "";
+        document.getElementById("minima").value = "";
+        document.getElementById("aprobadas").value = "";
+    };
+
+    // Reiniciar registro
+    const reiniciar = () => {
+        calificaciones = [];
+        cantidad = 0;
+
+        document.getElementById("formCantidad").reset();
+        document.getElementById("formNota").reset();
+
+        document.getElementById("cantidad").disabled = false;
+        document.getElementById("nota").disabled = true;
+        document.getElementById("btnAgregar").disabled = true;
+
+        document.getElementById("etiqueta").textContent =
+            "Calificación";
+
+        document.getElementById("listado").value = "";
+        limpiarResultados();
+
+        
+    };
+</script>
+
+</body>
+</html>
